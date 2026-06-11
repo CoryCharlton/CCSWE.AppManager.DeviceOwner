@@ -73,7 +73,30 @@ public class DeviceOwnerServiceTests
             var result = await service.SetAsync("serial1");
 
             Assert.That(result.Success, Is.False);
-            Assert.That(result.Message, Does.Contain("already some accounts"));
+            Assert.That(result.Message, Is.EqualTo(DeviceOwnerMessages.AccountsPresent));
+        }
+
+        [Test]
+        public async Task It_returns_a_timeout_message_when_the_command_hangs()
+        {
+            var adbLocator = new Mock<IAdbLocator>();
+            adbLocator.SetupGet(locator => locator.AdbPath).Returns("adb");
+
+            var processRunner = new Mock<IProcessRunner>();
+            processRunner
+                .Setup(runner => runner.RunAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+                .Returns(async (string _, IReadOnlyList<string> _, CancellationToken cancellationToken) =>
+                {
+                    await Task.Delay(Timeout.Infinite, cancellationToken);
+                    return new ProcessResult(0, string.Empty, string.Empty);
+                });
+
+            var service = new DeviceOwnerService(processRunner.Object, adbLocator.Object, new LoggerFake<DeviceOwnerService>(), TimeSpan.FromMilliseconds(50));
+
+            var result = await service.SetAsync("serial1");
+
+            Assert.That(result.Success, Is.False);
+            Assert.That(result.Message, Is.EqualTo(DeviceOwnerMessages.Timeout));
         }
     }
 }

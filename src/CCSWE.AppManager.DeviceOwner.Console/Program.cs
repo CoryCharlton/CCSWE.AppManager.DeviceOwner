@@ -47,7 +47,31 @@ try
         return 1;
     }
 
-    if (!assumeYes && !Confirm(target, deviceOwnerService.Component))
+    var readiness = await provider.GetRequiredService<IDeviceOwnerPreflight>().CheckAsync(target.Serial);
+
+    if (readiness.AlreadyDeviceOwner)
+    {
+        Console.WriteLine($"App Manager is already the device owner on {Describe(target)}.");
+        return 0;
+    }
+
+    if (!readiness.IsReady)
+    {
+        Console.WriteLine();
+        Console.WriteLine("This device may not be ready to set the device owner:");
+        foreach (var blocker in readiness.Blockers)
+        {
+            Console.WriteLine($"  - {blocker.Message}");
+        }
+        Console.WriteLine();
+
+        if (!assumeYes && !ConfirmTryAnyway())
+        {
+            Console.WriteLine("Cancelled.");
+            return 0;
+        }
+    }
+    else if (!assumeYes && !Confirm(target, deviceOwnerService.Component))
     {
         Console.WriteLine("Cancelled.");
         return 0;
@@ -97,6 +121,14 @@ static bool ConfirmDownload()
     return response is not null && (response.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) || response.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase));
 }
 
+static bool ConfirmTryAnyway()
+{
+    Console.Write("Try anyway? [y/N] ");
+
+    var response = Console.ReadLine();
+    return response is not null && (response.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) || response.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase));
+}
+
 static async Task<bool> EnsureAdbAsync(IPlatformToolsInstaller installer, bool assumeYes)
 {
     Console.WriteLine("Android platform tools (adb) weren't found on this computer.");
@@ -125,7 +157,7 @@ static async Task<bool> EnsureAdbAsync(IPlatformToolsInstaller installer, bool a
     catch (Exception exception)
     {
         Console.WriteLine();
-        Console.Error.WriteLine($"Failed to download platform tools: {exception.Message}");
+        Console.Error.WriteLine(DownloadError.Describe(exception));
         return false;
     }
 }

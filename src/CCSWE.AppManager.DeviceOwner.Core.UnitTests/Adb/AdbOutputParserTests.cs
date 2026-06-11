@@ -50,4 +50,100 @@ public class AdbOutputParserTests
             Assert.That(devices, Is.Empty);
         }
     }
+
+    public class When_ParseOwners_Is_Called
+    {
+        [Test]
+        public void It_returns_empty_for_no_owners()
+        {
+            Assert.That(AdbOutputParser.ParseOwners(string.Empty), Is.Empty);
+        }
+
+        [Test]
+        public void It_parses_app_manager_as_the_device_owner()
+        {
+            var output = "1 owner:\n"
+                + "User  0: admin=com.ccswe.appmanager.deviceowner/com.ccswe.appmanager.receivers.DeviceAdminReceiver,DeviceOwner,Affiliated\n";
+
+            var owner = AdbOutputParser.ParseOwners(output).Single();
+
+            Assert.That(owner.UserId, Is.EqualTo(0));
+            Assert.That(owner.Package, Is.EqualTo("com.ccswe.appmanager.deviceowner"));
+            Assert.That(owner.IsDeviceOwner, Is.True);
+            Assert.That(owner.IsProfileOwner, Is.False);
+        }
+
+        [Test]
+        public void It_parses_another_app_as_the_device_owner()
+        {
+            var output = "1 owner:\nUser  0: admin=com.other.mdm/.AdminReceiver,DeviceOwner\n";
+
+            var owner = AdbOutputParser.ParseOwners(output).Single();
+
+            Assert.That(owner.Package, Is.EqualTo("com.other.mdm"));
+            Assert.That(owner.IsDeviceOwner, Is.True);
+        }
+
+        [Test]
+        public void It_distinguishes_a_profile_owner()
+        {
+            var output = "1 owner:\nUser 10: admin=com.work/.Admin,ProfileOwner\n";
+
+            var owner = AdbOutputParser.ParseOwners(output).Single();
+
+            Assert.That(owner.UserId, Is.EqualTo(10));
+            Assert.That(owner.IsDeviceOwner, Is.False);
+            Assert.That(owner.IsProfileOwner, Is.True);
+        }
+    }
+
+    public class When_ParseUserCount_Is_Called
+    {
+        [Test]
+        public void It_counts_a_single_user()
+        {
+            var output = "Users:\n\tUserInfo{0:Owner:4c13} running\n";
+
+            Assert.That(AdbOutputParser.ParseUserCount(output), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void It_counts_multiple_users()
+        {
+            var output = "Users:\n\tUserInfo{0:Owner:4c13} running\n\tUserInfo{10:Work profile:1030} running\n";
+
+            Assert.That(AdbOutputParser.ParseUserCount(output), Is.EqualTo(2));
+        }
+    }
+
+    public class When_ParseAccountCount_Is_Called
+    {
+        [Test]
+        public void It_reads_zero_accounts()
+        {
+            var output = "User UserInfo{0:Owner:4c13}:\n  Accounts: 0\n";
+
+            Assert.That(AdbOutputParser.ParseAccountCount(output), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void It_reads_a_present_account_without_counting_session_references()
+        {
+            var output = "User UserInfo{0:Owner:4c13}:\n"
+                + "  Accounts: 1\n"
+                + "    Account {name=testing@midworld.xyz, type=com.google}\n"
+                + "  Active Sessions: 2\n"
+                + "    Session: Account {name=testing@midworld.xyz, type=com.google}\n";
+
+            Assert.That(AdbOutputParser.ParseAccountCount(output), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void It_returns_null_when_no_accounts_line_is_present()
+        {
+            var output = "User UserInfo{0:Owner:c13}:\n  Accounts History\n  RegisteredServicesCache: 8 services\n";
+
+            Assert.That(AdbOutputParser.ParseAccountCount(output), Is.Null);
+        }
+    }
 }

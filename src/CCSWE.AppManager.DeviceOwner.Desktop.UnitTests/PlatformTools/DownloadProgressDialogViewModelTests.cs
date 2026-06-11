@@ -65,7 +65,7 @@ public class DownloadProgressDialogViewModelTests
 
             Assert.That(viewModel.IsRunning, Is.False);
             Assert.That(viewModel.CancelLabel, Is.EqualTo("Close"));
-            Assert.That(viewModel.StatusLine, Does.Contain("connection reset"));
+            Assert.That(viewModel.StatusLine, Does.Contain("download server"));
         }
     }
 
