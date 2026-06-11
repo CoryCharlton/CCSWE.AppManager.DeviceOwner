@@ -2,6 +2,7 @@ using CCSWE.AppManager.DeviceOwner.Core;
 using CCSWE.AppManager.DeviceOwner.Core.Adb;
 using CCSWE.AppManager.DeviceOwner.Core.Common;
 using CCSWE.AppManager.DeviceOwner.Core.DeviceOwner;
+using CCSWE.AppManager.DeviceOwner.Core.PlatformTools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -22,6 +23,12 @@ using var provider = services.BuildServiceProvider();
 
 var deviceService = provider.GetRequiredService<IDeviceService>();
 var deviceOwnerService = provider.GetRequiredService<IDeviceOwnerService>();
+
+if (!provider.GetRequiredService<IAdbLocator>().IsAvailable &&
+    !await EnsureAdbAsync(provider.GetRequiredService<IPlatformToolsInstaller>(), assumeYes))
+{
+    return 1;
+}
 
 try
 {
@@ -82,6 +89,47 @@ static bool Confirm(AdbDevice device, string component)
     return response is not null && (response.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) || response.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase));
 }
 
+static bool ConfirmDownload()
+{
+    Console.Write("Download the Android platform tools now? [y/N] ");
+
+    var response = Console.ReadLine();
+    return response is not null && (response.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) || response.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase));
+}
+
+static async Task<bool> EnsureAdbAsync(IPlatformToolsInstaller installer, bool assumeYes)
+{
+    Console.WriteLine("Android platform tools (adb) weren't found on this computer.");
+
+    if (!installer.IsSupportedPlatform)
+    {
+        Console.Error.WriteLine("Automatic download isn't available on this platform. Install the Android SDK platform tools and ensure adb is on PATH.");
+        return false;
+    }
+
+    if (!assumeYes && !ConfirmDownload())
+    {
+        Console.Error.WriteLine("adb is required. Install the Android SDK platform tools and try again.");
+        return false;
+    }
+
+    Console.WriteLine("Downloading platform tools...");
+
+    try
+    {
+        var adbPath = await installer.InstallAsync(new Progress<DownloadProgress>(RenderDownloadProgress));
+        Console.WriteLine();
+        Console.WriteLine($"Installed platform tools: {adbPath}");
+        return true;
+    }
+    catch (Exception exception)
+    {
+        Console.WriteLine();
+        Console.Error.WriteLine($"Failed to download platform tools: {exception.Message}");
+        return false;
+    }
+}
+
 static string Describe(AdbDevice device)
 {
     var label = string.IsNullOrEmpty(device.Model) ? device.Serial : device.Model;
@@ -92,6 +140,17 @@ static string? OptionValue(string[] args, string name)
 {
     var index = Array.IndexOf(args, name);
     return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+}
+
+static void RenderDownloadProgress(DownloadProgress progress)
+{
+    var read = DownloadFormat.Bytes(progress.BytesRead);
+    var speed = progress.BytesPerSecond > 0 ? $"  {DownloadFormat.SpeedAndEta(progress.BytesPerSecond, progress.Eta)}" : string.Empty;
+    var line = progress.TotalBytes is > 0
+        ? $"  {read} / {DownloadFormat.Bytes(progress.TotalBytes.Value)}{speed}"
+        : $"  {read}{speed}";
+
+    Console.Write($"\r{line.PadRight(70)}");
 }
 
 static void PrintUsage()

@@ -8,9 +8,9 @@
         mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="520"
         x:Class="CCSWE.AppManager.DeviceOwner.Desktop.Shell.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/logo.ico"
+        Icon="/Assets/ccswe-logo.ico"
         Title="App Manager — Device Owner"
-        Width="560" Height="520"
+        Width="560" Height="480"
         WindowStartupLocation="CenterScreen"
         FontFamily="{DynamicResource BodyFontFamily}"
         Background="{DynamicResource Surface}">
