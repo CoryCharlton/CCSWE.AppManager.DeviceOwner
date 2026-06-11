@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CCSWE.AppManager.DeviceOwner.Desktop.Shell"
+        xmlns:do="using:CCSWE.AppManager.DeviceOwner.Desktop.DeviceOwner"
+        xmlns:notifications="using:Avalonia.Controls.Notifications"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="520"
+        x:Class="CCSWE.AppManager.DeviceOwner.Desktop.Shell.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/logo.ico"
+        Title="App Manager — Device Owner"
+        Width="560" Height="520"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="{DynamicResource BodyFontFamily}"
+        Background="{DynamicResource Surface}">
+
+    <Panel>
+        <ScrollViewer>
+            <StackPanel MaxWidth="560" Margin="24" Spacing="16" VerticalAlignment="Top">
+
+                <StackPanel Spacing="4" Margin="0,0,0,4">
+                    <TextBlock Classes="HeadlineSmall" Text="Device Owner"
+                               Foreground="{DynamicResource OnSurfaceStrong}"/>
+                    <TextBlock Classes="BodyMedium" TextWrapping="Wrap"
+                               Text="Set App Manager as the device owner on a connected device."
+                               Foreground="{DynamicResource OnSurfaceVariant}"/>
+                </StackPanel>
+
+                <do:DevicePickerCard/>
+                <do:SetDeviceOwnerCard/>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Declared in the tree (not constructed in code) so it's laid out before the first Show. -->
+        <notifications:WindowNotificationManager x:Name="NotificationManager"
+                                                 Position="BottomRight" MaxItems="5"/>
+    </Panel>
+
+</Window>

@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # create the GitHub Release and upload assets
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_NOLOGO: true
+  Configuration: Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0   # Nerdbank.GitVersioning needs full history
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore
+        run: dotnet restore src/CCSWE.AppManager.DeviceOwner.slnx
+
+      - name: Build
+        run: dotnet build src/CCSWE.AppManager.DeviceOwner.slnx -c Release --no-restore /p:ContinuousIntegrationBuild=true
+
+      - name: Test
+        run: dotnet test src/CCSWE.AppManager.DeviceOwner.slnx -c Release --no-build --verbosity normal
+
+      - name: Compute version
+        id: version
+        run: echo "version=$(dotnet tool run nbgv get-version -v NuGetPackageVersion)" >> "$GITHUB_OUTPUT"
+
+      # One Linux runner cross-publishes every RID (framework-dependent, so the build OS doesn't matter).
+      # zip for Windows; tar.gz for the unix RIDs so the apphost executable bit survives.
+      - name: Publish and package
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          for rid in win-x64 linux-x64 osx-x64 osx-arm64; do
+            out="out/${rid}"
+            # The Desktop and Console heads ship together and share the framework-dependent deps, so publish
+            # both into one folder per RID (shared DLLs overwrite identically; each keeps its own launcher).
+            for proj in Desktop Console; do
+              dotnet publish "src/CCSWE.AppManager.DeviceOwner.${proj}/CCSWE.AppManager.DeviceOwner.${proj}.csproj" \
+                -c Release -r "$rid" --self-contained false \
+                /p:ContinuousIntegrationBuild=true -o "$out"
+            done
+            # No version in the asset name, so /releases/latest/download/CCSWE.AppManager.DeviceOwner-<rid>.<ext> is a stable URL.
+            name="CCSWE.AppManager.DeviceOwner-${rid}"
+            if [ "$rid" = "win-x64" ]; then
+              (cd "$out" && zip -qr "${GITHUB_WORKSPACE}/artifacts/${name}.zip" .)
+            else
+              tar -czf "artifacts/${name}.tar.gz" -C "$out" .
+            fi
+          done
+          (cd artifacts && sha256sum * > SHA256SUMS.txt)
+          ls -l artifacts
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          prerelease=""
+          case "${GITHUB_REF_NAME}" in *-*) prerelease="--prerelease";; esac
+          gh release create "${GITHUB_REF_NAME}" artifacts/* \
+            --title "CCSWE.AppManager.DeviceOwner v${VERSION}" \
+            --generate-notes \
+            $prerelease \
+            || gh release upload "${GITHUB_REF_NAME}" artifacts/* --clobber

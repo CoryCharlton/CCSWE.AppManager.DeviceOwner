@@ -1,0 +1,16 @@
+* text=auto
+
+*.cs       text diff=csharp
+*.axaml    text
+*.csproj   text
+*.slnx     text
+*.props    text
+*.targets  text
+*.json     text
+*.md       text
+*.yml      text
+*.sh       text eol=lf
+*.ps1      text eol=crlf
+
+*.ico      binary
+*.png      binary

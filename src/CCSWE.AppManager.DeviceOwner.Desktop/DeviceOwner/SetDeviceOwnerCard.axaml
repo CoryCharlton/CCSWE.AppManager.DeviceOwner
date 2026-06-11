@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CCSWE.AppManager.DeviceOwner.Desktop.Shell"
+             xmlns:theme="using:CCSWE.Avalonia.Material"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="520"
+             x:Class="CCSWE.AppManager.DeviceOwner.Desktop.DeviceOwner.SetDeviceOwnerCard"
+             x:DataType="vm:MainWindowViewModel">
+
+    <theme:Card Classes="Elevated">
+        <StackPanel Spacing="16">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <PathIcon Data="{StaticResource IconAndroidLogo}" Width="24" Height="24"
+                          VerticalAlignment="Center" Foreground="{DynamicResource Primary}"/>
+                <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Classes="TitleMedium" Text="Set device owner" Foreground="{DynamicResource OnSurface}"/>
+                    <TextBlock Classes="BodySmall" TextWrapping="Wrap"
+                               Text="Makes App Manager the device owner on the selected device."
+                               Foreground="{DynamicResource OnSurfaceVariant}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <Button Classes="Filled" HorizontalAlignment="Right"
+                    Content="Set device owner"
+                    Command="{Binding SetDeviceOwnerCommand}"/>
+        </StackPanel>
+    </theme:Card>
+
+</UserControl>

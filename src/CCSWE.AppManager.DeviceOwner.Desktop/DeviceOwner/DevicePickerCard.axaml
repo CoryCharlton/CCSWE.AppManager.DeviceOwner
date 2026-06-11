@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CCSWE.AppManager.DeviceOwner.Desktop.Shell"
+             xmlns:do="using:CCSWE.AppManager.DeviceOwner.Desktop.DeviceOwner"
+             xmlns:theme="using:CCSWE.Avalonia.Material"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="520"
+             x:Class="CCSWE.AppManager.DeviceOwner.Desktop.DeviceOwner.DevicePickerCard"
+             x:DataType="vm:MainWindowViewModel">
+
+    <theme:Card Classes="Elevated">
+        <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Classes="TitleMedium" Text="Device" Foreground="{DynamicResource OnSurface}"/>
+                    <TextBlock Classes="BodySmall" Text="{Binding StatusText}" Foreground="{DynamicResource OnSurfaceVariant}"/>
+                </StackPanel>
+                <Button Grid.Column="1" Classes="Icon" VerticalAlignment="Top"
+                        Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh device list">
+                    <PathIcon Data="{StaticResource IconArrowsClockwise}" Width="18" Height="18"/>
+                </Button>
+            </Grid>
+
+            <ComboBox HorizontalAlignment="Stretch"
+                      ItemsSource="{Binding Devices}"
+                      SelectedItem="{Binding SelectedDevice}"
+                      PlaceholderText="No device selected"
+                      IsEnabled="{Binding !IsBusy}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="do:DeviceRowViewModel">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Data="{StaticResource IconDeviceMobile}" Width="18" Height="18"
+                                      VerticalAlignment="Center" Foreground="{DynamicResource OnSurfaceVariant}"/>
+                            <StackPanel Spacing="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DisplayName}" Classes="BodyMedium"/>
+                                <TextBlock Text="{Binding Serial}" Classes="BodySmall"
+                                           Foreground="{DynamicResource OnSurfaceVariant}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </StackPanel>
+    </theme:Card>
+
+</UserControl>

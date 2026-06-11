@@ -1,0 +1,18 @@
+# Categorizes the notes that `gh release create --generate-notes` produces.
+changelog:
+  categories:
+    - title: Features
+      labels:
+        - enhancement
+        - feature
+    - title: Bug Fixes
+      labels:
+        - bug
+        - fix
+    - title: Maintenance & Dependencies
+      labels:
+        - chore
+        - dependencies
+    - title: Other Changes
+      labels:
+        - "*"
