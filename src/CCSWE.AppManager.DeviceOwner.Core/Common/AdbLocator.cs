@@ -6,13 +6,15 @@ namespace CCSWE.AppManager.DeviceOwner.Core.Common;
 /// <inheritdoc />
 public sealed class AdbLocator : IAdbLocator
 {
+    private readonly IEnvironment _environment;
     private readonly IExecutableFinder _executableFinder;
     private readonly ISettingsService _settings;
 
-    public AdbLocator(ISettingsService settings, IExecutableFinder executableFinder, ILogger<AdbLocator> logger)
+    public AdbLocator(ISettingsService settings, IExecutableFinder executableFinder, IEnvironment environment, ILogger<AdbLocator> logger)
     {
         _settings = settings;
         _executableFinder = executableFinder;
+        _environment = environment;
 
         if (Resolve() is null)
         {
@@ -26,15 +28,17 @@ public sealed class AdbLocator : IAdbLocator
     /// <inheritdoc />
     public bool IsAvailable => Resolve() is not null;
 
-    private static string DefaultSdkRoot()
+    private static string Executable(string name) => OperatingSystem.IsWindows() ? $"{name}.exe" : name;
+
+    private string DefaultSdkRoot()
     {
         if (OperatingSystem.IsWindows())
         {
-            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var localAppData = _environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             return Path.Combine(localAppData, "Android", "Sdk");
         }
 
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var home = _environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
         if (OperatingSystem.IsMacOS())
         {
@@ -43,8 +47,6 @@ public sealed class AdbLocator : IAdbLocator
 
         return Path.Combine(home, "Android", "Sdk");
     }
-
-    private static string Executable(string name) => OperatingSystem.IsWindows() ? $"{name}.exe" : name;
 
     // Override → ANDROID_HOME → ANDROID_SDK_ROOT (deprecated) → platform-default SDK → PATH; the first that
     // points at a real adb. Null means none matched (caller falls back to the bare name).
@@ -60,7 +62,7 @@ public sealed class AdbLocator : IAdbLocator
 
         foreach (var variable in new[] { "ANDROID_HOME", "ANDROID_SDK_ROOT" })
         {
-            var root = Environment.GetEnvironmentVariable(variable);
+            var root = _environment.GetEnvironmentVariable(variable);
             if (!string.IsNullOrWhiteSpace(root))
             {
                 var candidate = Path.Combine(root, "platform-tools", adb);

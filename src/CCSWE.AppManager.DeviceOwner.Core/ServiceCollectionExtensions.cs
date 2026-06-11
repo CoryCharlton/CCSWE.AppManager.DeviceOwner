@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient();
 
         services.AddSingleton<IAdbLocator, AdbLocator>();
+        services.AddSingleton<IEnvironment, SystemEnvironment>();
         services.AddSingleton<IDeviceOwnerService, DeviceOwnerService>();
         services.AddSingleton<IDeviceService, DeviceService>();
         services.AddSingleton<IExecutableFinder, ExecutableFinder>();
