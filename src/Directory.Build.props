@@ -11,6 +11,7 @@
     <Authors>Cory Charlton</Authors>
     <Company>Cory Charlton</Company>
     <Copyright>© 2026 Cory Charlton</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/CoryCharlton/CCSWE.AppManager.DeviceOwner</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Deterministic>true</Deterministic>
