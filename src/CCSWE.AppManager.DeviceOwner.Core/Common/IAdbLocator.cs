@@ -12,4 +12,10 @@ public interface IAdbLocator
     /// to the bare <c>adb</c> name (resolved by the OS at launch) when nothing else is found.
     /// </summary>
     string AdbPath { get; }
+
+    /// <summary>
+    /// <see langword="true"/> when <c>adb</c> resolves to a real file (override, env var, default SDK, or
+    /// <c>PATH</c>); <see langword="false"/> when only the bare-name fallback remains. Evaluated live.
+    /// </summary>
+    bool IsAvailable { get; }
 }

@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:pt="using:CCSWE.AppManager.DeviceOwner.Desktop.PlatformTools"
+        x:Class="CCSWE.AppManager.DeviceOwner.Desktop.PlatformTools.DownloadProgressDialogWindow"
+        x:DataType="pt:DownloadProgressDialogViewModel"
+        Title="Downloading platform tools"
+        Width="440" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Surface}">
+
+    <StackPanel Margin="24" Spacing="16">
+        <TextBlock Classes="TitleMedium" Foreground="{DynamicResource OnSurface}"
+                   Text="Downloading Android platform tools" TextWrapping="Wrap"/>
+
+        <ProgressBar Minimum="0" Maximum="100"
+                     Value="{Binding PercentComplete}"
+                     IsIndeterminate="{Binding IsIndeterminate}"/>
+
+        <StackPanel Spacing="2">
+            <TextBlock Classes="BodyMedium" Foreground="{DynamicResource OnSurface}"
+                       Text="{Binding StatusLine}" TextWrapping="Wrap"/>
+            <TextBlock Classes="BodySmall" Foreground="{DynamicResource OnSurfaceVariant}"
+                       Text="{Binding SpeedAndEtaLine}" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <Button HorizontalAlignment="Right"
+                Content="{Binding CancelLabel}"
+                Command="{Binding CancelCommand}"/>
+    </StackPanel>
+
+</Window>

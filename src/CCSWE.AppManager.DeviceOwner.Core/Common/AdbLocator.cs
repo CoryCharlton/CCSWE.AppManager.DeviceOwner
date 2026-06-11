@@ -23,6 +23,9 @@ public sealed class AdbLocator : IAdbLocator
     /// <inheritdoc />
     public string AdbPath => Resolve() ?? Executable("adb");
 
+    /// <inheritdoc />
+    public bool IsAvailable => Resolve() is not null;
+
     private static string DefaultSdkRoot()
     {
         if (OperatingSystem.IsWindows())

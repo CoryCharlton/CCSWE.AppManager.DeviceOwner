@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad_transparent_512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#336699"/>
+      <stop offset="50%" stop-color="#659ec7"/>
+      <stop offset="100%" stop-color="#a0c8df"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="100" height="100" rx="15" fill="none"/>
+  <!-- Underlay pass: C shapes in solid dark so gradient blends consistently -->
+  <path d="M 47.500,15.000 A 35,35 0 1,0 47.500,85.000 L 47.500,67.000 A 17,17 0 1,1 47.500,33.000 Z" fill="#0f172a"/>
+  <path d="M 52.500,15.000 A 35,35 0 1,0 52.500,85.000 L 52.500,67.000 A 17,17 0 1,1 52.500,33.000 Z" transform="rotate(180 52.5 50)" fill="#0f172a"/>
+  <!-- Gradient pass on top -->
+  <path d="M 47.500,15.000 A 35,35 0 1,0 47.500,85.000 L 47.500,67.000 A 17,17 0 1,1 47.500,33.000 Z" fill="url(#grad_transparent_512)"/>
+  <path d="M 52.500,15.000 A 35,35 0 1,0 52.500,85.000 L 52.500,67.000 A 17,17 0 1,1 52.500,33.000 Z" transform="rotate(180 52.5 50)" fill="url(#grad_transparent_512)" opacity="0.6"/>
+</svg>
