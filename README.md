@@ -3,7 +3,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/CoryCharlton/CCSWE.AppManager.DeviceOwner/ci.yml?branch=master&label=build)](https://github.com/CoryCharlton/CCSWE.AppManager.DeviceOwner/actions/workflows/ci.yml)
 [![CodeQL](https://img.shields.io/github/actions/workflow/status/CoryCharlton/CCSWE.AppManager.DeviceOwner/codeql.yml?branch=master&label=codeql)](https://github.com/CoryCharlton/CCSWE.AppManager.DeviceOwner/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/CoryCharlton/CCSWE.AppManager.DeviceOwner?display_name=tag&sort=semver)](https://github.com/CoryCharlton/CCSWE.AppManager.DeviceOwner/releases/latest)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 
 A small cross-platform helper (desktop app + matching console) that makes the **App Manager** Android app the
 **device owner** on a connected device — it picks a device, runs `adb shell dpm set-device-owner`, and reports
@@ -130,4 +130,12 @@ a GitHub Release with auto-generated notes. Bump `version.json` (and commit) whe
 
 ## License
 
-[MIT](LICENSE.md) © 2026 Cory Charlton
+Copyright © 2026 Cory Charlton.
+
+This program is free software: you can redistribute it and/or modify it under the terms of the **GNU General
+Public License v3.0 or later** as published by the Free Software Foundation. It is distributed WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
+[LICENSE](LICENSE) for the full text.
+
+The **App Manager** and **CCSWE** names, logos, and icons are trademarks of Cory Charlton and are **not** licensed
+under the GPL — a fork must use its own distinct name and branding.

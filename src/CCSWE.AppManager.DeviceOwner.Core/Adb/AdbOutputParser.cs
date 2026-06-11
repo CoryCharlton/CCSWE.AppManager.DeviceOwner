@@ -73,6 +73,85 @@ public static class AdbOutputParser
         return devices;
     }
 
+    /// <summary>
+    /// Parses <c>dpm list-owners</c> into the owners it reports. Empty/"no owners" output yields an empty list.
+    /// Each owner line is <c>User &lt;id&gt;: admin=&lt;component&gt;,&lt;flag&gt;,…</c>; the flags carry the
+    /// <c>DeviceOwner</c>/<c>ProfileOwner</c>/<c>ManagedProfileOwner(…)</c> roles.
+    /// </summary>
+    public static IReadOnlyList<AdbOwner> ParseOwners(string output)
+    {
+        var owners = new List<AdbOwner>();
+
+        foreach (var rawLine in output.AsSpan().EnumerateLines())
+        {
+            var line = rawLine.Trim();
+
+            var adminIndex = line.IndexOf("admin=", StringComparison.Ordinal);
+            if (adminIndex < 0)
+            {
+                continue;
+            }
+
+            var userId = ParseUserId(line);
+
+            var afterAdmin = line[(adminIndex + "admin=".Length)..];
+            var comma = afterAdmin.IndexOf(',');
+            var component = (comma < 0 ? afterAdmin : afterAdmin[..comma]).Trim();
+            var flags = comma < 0 ? [] : afterAdmin[(comma + 1)..];
+
+            var (isDeviceOwner, isProfileOwner) = ReadOwnerFlags(flags);
+
+            var slash = component.IndexOf('/');
+            var package = (slash <= 0 ? component : component[..slash]).Trim();
+
+            owners.Add(new AdbOwner(userId, component.ToString(), package.ToString(), isDeviceOwner, isProfileOwner));
+        }
+
+        return owners;
+    }
+
+    /// <summary>Counts the users reported by <c>pm list users</c> (one <c>UserInfo{…}</c> per user).</summary>
+    public static int ParseUserCount(string output)
+    {
+        var count = 0;
+
+        foreach (var rawLine in output.AsSpan().EnumerateLines())
+        {
+            if (rawLine.Contains("UserInfo{", StringComparison.Ordinal))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Sums the <c>Accounts: &lt;N&gt;</c> lines from <c>dumpsys account</c>. Returns <see langword="null"/> when
+    /// no such line is present (older Android), where the count is unknown rather than zero.
+    /// </summary>
+    public static int? ParseAccountCount(string output)
+    {
+        int? total = null;
+
+        foreach (var rawLine in output.AsSpan().EnumerateLines())
+        {
+            var line = rawLine.Trim();
+
+            if (!line.StartsWith("Accounts:", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (int.TryParse(line["Accounts:".Length..].Trim(), out var count))
+            {
+                total = (total ?? 0) + count;
+            }
+        }
+
+        return total;
+    }
+
     // Returns the next space/tab-delimited token, advancing `remaining` past it; an empty span when none remain.
     private static ReadOnlySpan<char> NextToken(ref ReadOnlySpan<char> remaining)
     {
@@ -91,5 +170,56 @@ public static class AdbOutputParser
         var token = remaining[start..i];
         remaining = remaining[i..];
         return token;
+    }
+
+    // Reads the comma-separated owner flags, distinguishing the device-owner role from the profile-owner roles
+    // (DeviceOwner is its own token; ProfileOwner and ManagedProfileOwner(…) both mean a profile owner).
+    private static (bool IsDeviceOwner, bool IsProfileOwner) ReadOwnerFlags(ReadOnlySpan<char> flags)
+    {
+        var isDeviceOwner = false;
+        var isProfileOwner = false;
+
+        while (!flags.IsEmpty)
+        {
+            var comma = flags.IndexOf(',');
+            var token = (comma < 0 ? flags : flags[..comma]).Trim();
+
+            if (token.SequenceEqual("DeviceOwner"))
+            {
+                isDeviceOwner = true;
+            }
+            else if (token.SequenceEqual("ProfileOwner") || token.StartsWith("ManagedProfileOwner", StringComparison.Ordinal))
+            {
+                isProfileOwner = true;
+            }
+
+            flags = comma < 0 ? [] : flags[(comma + 1)..];
+        }
+
+        return (isDeviceOwner, isProfileOwner);
+    }
+
+    // Extracts the user id from a leading "User <id>:" prefix, or null when the line isn't user-scoped.
+    private static int? ParseUserId(ReadOnlySpan<char> line)
+    {
+        if (!line.StartsWith("User", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var rest = line[4..];
+        var i = 0;
+        while (i < rest.Length && rest[i] == ' ')
+        {
+            i++;
+        }
+
+        var start = i;
+        while (i < rest.Length && char.IsDigit(rest[i]))
+        {
+            i++;
+        }
+
+        return i > start ? int.Parse(rest[start..i]) : null;
     }
 }

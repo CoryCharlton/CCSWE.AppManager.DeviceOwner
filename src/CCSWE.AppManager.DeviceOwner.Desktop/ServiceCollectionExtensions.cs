@@ -28,6 +28,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<INotificationService>(provider => provider.GetRequiredService<NotificationService>());
 
         services.AddSingleton<IConfirmDialog, ConfirmDialog>();
+        services.AddSingleton<IMessageDialog, MessageDialog>();
         services.AddSingleton<IPlatformToolsInstallDialog, PlatformToolsInstallDialog>();
         services.AddTransient<DownloadProgressDialogViewModel>();
         services.AddTransient<Func<DownloadProgressDialogViewModel>>(provider => provider.GetRequiredService<DownloadProgressDialogViewModel>);

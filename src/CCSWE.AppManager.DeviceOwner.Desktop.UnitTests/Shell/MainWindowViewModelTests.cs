@@ -23,6 +23,13 @@ public class MainWindowViewModelTests
         return locator.Object;
     }
 
+    private static IDeviceOwnerPreflight ReadyPreflight()
+    {
+        var preflight = new Mock<IDeviceOwnerPreflight>();
+        preflight.Setup(p => p.CheckAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new DeviceOwnerReadiness(false, []));
+        return preflight.Object;
+    }
+
     private static MainWindowViewModel Create(
         IDeviceService deviceService,
         IDeviceOwnerService? deviceOwnerService = null,
@@ -30,13 +37,17 @@ public class MainWindowViewModelTests
         IAdbLocator? adbLocator = null,
         IConfirmDialog? confirmDialog = null,
         IPlatformToolsInstallDialog? installDialog = null,
-        FakeTimerFactory? timerFactory = null) =>
+        FakeTimerFactory? timerFactory = null,
+        IDeviceOwnerPreflight? preflight = null,
+        IMessageDialog? messageDialog = null) =>
         new(
             deviceService,
             deviceOwnerService ?? Mock.Of<IDeviceOwnerService>(),
+            preflight ?? ReadyPreflight(),
             notifications ?? new FakeNotificationService(),
             adbLocator ?? AvailableAdb(),
             confirmDialog ?? Mock.Of<IConfirmDialog>(),
+            messageDialog ?? Mock.Of<IMessageDialog>(),
             installDialog ?? Mock.Of<IPlatformToolsInstallDialog>(),
             timerFactory ?? new FakeTimerFactory());
 
@@ -233,12 +244,12 @@ public class MainWindowViewModelTests
 
     public class When_SetDeviceOwnerAsync_Is_Called : MainWindowViewModelTests
     {
-        private static async Task<MainWindowViewModel> CreateWithSelectionAsync(IDeviceOwnerService deviceOwnerService, FakeNotificationService notifications)
+        private static async Task<MainWindowViewModel> CreateWithSelectionAsync(IDeviceOwnerService deviceOwnerService, FakeNotificationService notifications, IMessageDialog? messageDialog = null)
         {
             var deviceService = new Mock<IDeviceService>();
             deviceService.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new[] { Online("serial1", "Pixel 7") });
 
-            var viewModel = Create(deviceService.Object, deviceOwnerService, notifications);
+            var viewModel = Create(deviceService.Object, deviceOwnerService, notifications, messageDialog: messageDialog);
             await viewModel.RefreshCommand.ExecuteAsync(null);
             return viewModel;
         }
@@ -259,20 +270,83 @@ public class MainWindowViewModelTests
         }
 
         [Test]
-        public async Task It_shows_an_error_notification_carrying_the_failure_message()
+        public async Task It_shows_the_failure_in_a_dialog_not_a_toast()
         {
             var deviceOwnerService = new Mock<IDeviceOwnerService>();
             deviceOwnerService.Setup(s => s.SetAsync("serial1", It.IsAny<CancellationToken>())).ReturnsAsync(DeviceOwnerResult.Failed("accounts already on device"));
 
+            var messageDialog = new Mock<IMessageDialog>();
             var notifications = new FakeNotificationService();
-            var viewModel = await CreateWithSelectionAsync(deviceOwnerService.Object, notifications);
+            var viewModel = await CreateWithSelectionAsync(deviceOwnerService.Object, notifications, messageDialog.Object);
 
             await viewModel.SetDeviceOwnerCommand.ExecuteAsync(null);
 
-            var shown = notifications.Shown.Single();
-            Assert.That(shown.Severity, Is.EqualTo(NotificationSeverity.Error));
-            Assert.That(shown.Message, Is.EqualTo("accounts already on device"));
+            messageDialog.Verify(d => d.ShowAsync("Couldn't set device owner", "accounts already on device"), Times.Once);
+            Assert.That(notifications.Shown, Is.Empty);
             Assert.That(viewModel.StatusText, Is.EqualTo("Failed to set device owner"));
+        }
+    }
+
+    public class When_The_Device_Is_Not_Ready : MainWindowViewModelTests
+    {
+        private static IDeviceOwnerPreflight Preflight(DeviceOwnerReadiness readiness)
+        {
+            var preflight = new Mock<IDeviceOwnerPreflight>();
+            preflight.Setup(p => p.CheckAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(readiness);
+            return preflight.Object;
+        }
+
+        private static async Task<MainWindowViewModel> SelectedAsync(IDeviceOwnerService deviceOwnerService, IDeviceOwnerPreflight preflight, IConfirmDialog confirmDialog, FakeNotificationService notifications)
+        {
+            var deviceService = new Mock<IDeviceService>();
+            deviceService.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new[] { Online("serial1", "Pixel 7") });
+
+            var viewModel = Create(deviceService.Object, deviceOwnerService, notifications, confirmDialog: confirmDialog, preflight: preflight);
+            await viewModel.RefreshCommand.ExecuteAsync(null);
+            return viewModel;
+        }
+
+        [Test]
+        public async Task It_reports_already_owner_without_running_set()
+        {
+            var deviceOwnerService = new Mock<IDeviceOwnerService>();
+
+            var viewModel = await SelectedAsync(deviceOwnerService.Object, Preflight(new DeviceOwnerReadiness(true, [])), Mock.Of<IConfirmDialog>(), new FakeNotificationService());
+            await viewModel.SetDeviceOwnerCommand.ExecuteAsync(null);
+
+            deviceOwnerService.Verify(s => s.SetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            Assert.That(viewModel.StatusText, Is.EqualTo("Already the device owner"));
+        }
+
+        [Test]
+        public async Task It_does_not_set_when_the_blocker_prompt_is_declined()
+        {
+            var deviceOwnerService = new Mock<IDeviceOwnerService>();
+            var confirmDialog = new Mock<IConfirmDialog>();
+            confirmDialog.Setup(d => d.ConfirmAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+
+            var blockers = new[] { new PreflightBlocker(PreflightBlockerKind.AccountsPresent, "Remove accounts") };
+            var viewModel = await SelectedAsync(deviceOwnerService.Object, Preflight(new DeviceOwnerReadiness(false, blockers)), confirmDialog.Object, new FakeNotificationService());
+            await viewModel.SetDeviceOwnerCommand.ExecuteAsync(null);
+
+            deviceOwnerService.Verify(s => s.SetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            Assert.That(viewModel.StatusText, Is.EqualTo("Device not ready"));
+        }
+
+        [Test]
+        public async Task It_sets_when_the_blocker_is_overridden()
+        {
+            var deviceOwnerService = new Mock<IDeviceOwnerService>();
+            deviceOwnerService.Setup(s => s.SetAsync("serial1", It.IsAny<CancellationToken>())).ReturnsAsync(DeviceOwnerResult.Succeeded());
+
+            var confirmDialog = new Mock<IConfirmDialog>();
+            confirmDialog.Setup(d => d.ConfirmAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+
+            var blockers = new[] { new PreflightBlocker(PreflightBlockerKind.AccountsPresent, "Remove accounts") };
+            var viewModel = await SelectedAsync(deviceOwnerService.Object, Preflight(new DeviceOwnerReadiness(false, blockers)), confirmDialog.Object, new FakeNotificationService());
+            await viewModel.SetDeviceOwnerCommand.ExecuteAsync(null);
+
+            deviceOwnerService.Verify(s => s.SetAsync("serial1", It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

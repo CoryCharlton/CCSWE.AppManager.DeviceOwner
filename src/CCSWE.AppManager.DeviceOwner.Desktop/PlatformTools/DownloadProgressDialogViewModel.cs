@@ -49,7 +49,7 @@ public partial class DownloadProgressDialogViewModel : ViewModelBase, IDialogVie
             await _installer.InstallAsync(progress, _cancellation.Token);
             CloseRequested?.Invoke(true);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException exception) when (exception.CancellationToken == _cancellation.Token)
         {
             CloseRequested?.Invoke(false);
         }
@@ -58,7 +58,7 @@ public partial class DownloadProgressDialogViewModel : ViewModelBase, IDialogVie
             IsRunning = false;
             IsIndeterminate = false;
             PercentComplete = 0;
-            StatusLine = $"Download failed: {exception.Message}";
+            StatusLine = DownloadError.Describe(exception);
             SpeedAndEtaLine = string.Empty;
         }
     }
