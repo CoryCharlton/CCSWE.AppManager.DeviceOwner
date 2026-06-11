@@ -18,21 +18,26 @@ way instead of shipping a copy.
 
 ## What it does
 
-1. Lists the online devices the local `adb` server sees (`adb devices -l`).
+1. Lists the online devices the local `adb` server sees (`adb devices -l`), refreshing as you plug them in. If
+   `adb` isn't installed, it offers to download Google's SDK Platform Tools for you.
 2. You pick one.
-3. It runs `adb -s <serial> shell dpm set-device-owner com.ccswe.appmanager.deviceowner/com.ccswe.appmanager.receivers.DeviceAdminReceiver`.
-4. It reports success or failure — including the cases where `dpm` exits cleanly but refused (e.g. *"there are
-   already some accounts on the device"*).
+3. Before running, it checks the device is ready — no blocking accounts, a single user, App Manager installed, no
+   existing device owner — and explains anything you need to fix first (with a **Try anyway** override). If App
+   Manager is already the device owner, it just tells you so.
+4. It runs `adb -s <serial> shell dpm set-device-owner com.ccswe.appmanager.deviceowner/com.ccswe.appmanager.receivers.DeviceAdminReceiver`.
+5. It reports success or failure with actionable guidance — including the cases where `dpm` exits cleanly but
+   refused (e.g. *"there are already some accounts on the device"*).
 
 That's the whole app. The device-owner component is fixed to App Manager's; this isn't a general `dpm` runner.
 
 ## Requirements
 
 - **[.NET 10 runtime](https://dotnet.microsoft.com/download)** to run it (the **SDK** to build from source).
-- **`adb`** — found via the `--adb`/Settings override, `ANDROID_HOME`/`ANDROID_SDK_ROOT`, the platform-default
-  SDK location (e.g. `%LOCALAPPDATA%\Android\Sdk`), or `PATH`.
+- **`adb`** — found via the Settings `adb`-path override, `ANDROID_HOME`/`ANDROID_SDK_ROOT`, the platform-default
+  SDK location (e.g. `%LOCALAPPDATA%\Android\Sdk`), or `PATH`. If none of those have it, the helper offers to
+  download Google's SDK Platform Tools and uses that copy (no manual SDK setup needed).
 - A device with **USB debugging** enabled and **authorized**, in a state that allows setting a device owner
-  (typically freshly set up, no added accounts).
+  (typically freshly set up, no added accounts). The helper checks this for you and explains what to fix.
 
 ## Install & run
 
@@ -61,8 +66,9 @@ dotnet run --project src/CCSWE.AppManager.DeviceOwner.Console
 
 ### Desktop
 
-Launch it, pick a device from the list (use **Refresh** if you plug one in), then **Set device owner**. A toast
-reports the result; if `dpm` refused, the toast carries the reason.
+Launch it, pick a device from the list (it auto-refreshes; **Refresh** forces it), then **Set device owner**. If
+the device isn't ready it explains what to fix first (with a **Try anyway** override); on success a toast confirms
+it, and any failure — with the full reason — opens in a dialog.
 
 ### Console
 
@@ -95,7 +101,8 @@ dotnet run --project src/CCSWE.AppManager.DeviceOwner.Console -- --serial <seria
 The solution is `src/CCSWE.AppManager.DeviceOwner.slnx`:
 
 - **`CCSWE.AppManager.DeviceOwner.Core`** — class library with all domain logic (process plumbing, `adb`
-  location, device listing, the device-owner command, settings). No UI dependency.
+  location, device listing, the device-owner command and its pre-flight checks, the Platform Tools downloader,
+  settings). No UI dependency.
 - **`CCSWE.AppManager.DeviceOwner.Desktop`** — the Avalonia desktop GUI (`WinExe`), a single window.
 - **`CCSWE.AppManager.DeviceOwner.Console`** — the command-line front-end.
 - **`*.UnitTests`** — NUnit 4 tests (plain NUnit + Moq; UI types sit behind seams, so no Avalonia.Headless).
@@ -108,7 +115,8 @@ dotnet test src/CCSWE.AppManager.DeviceOwner.slnx
 
 All functionality lives in **`CCSWE.AppManager.DeviceOwner.Core`**; the desktop GUI and console are thin
 front-ends that compose a DI service provider (`AddDeviceOwnerCore()`) and drive the same services. Both are
-organized **feature-first** (`Adb/`, `DeviceOwner/`, `Settings/`), with `Common/` for cross-feature plumbing.
+organized **feature-first** (`Adb/`, `DeviceOwner/`, `PlatformTools/`, `Settings/`), with `Common/` for
+cross-feature plumbing.
 View models and services stay UI-free: anything that would touch an Avalonia control goes behind a `Common/`
 abstraction with a UI-side adapter (e.g. `INotificationService`/`INotificationSink`), keeping them unit-testable
 with plain NUnit + Moq.
