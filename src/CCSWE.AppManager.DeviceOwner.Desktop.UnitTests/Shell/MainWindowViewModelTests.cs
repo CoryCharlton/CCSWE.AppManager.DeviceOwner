@@ -38,7 +38,8 @@ public class MainWindowViewModelTests
         IConfirmDialog? confirmDialog = null,
         IPlatformToolsInstallDialog? installDialog = null,
         FakeTimerFactory? timerFactory = null,
-        IDeviceOwnerPreflight? preflight = null) =>
+        IDeviceOwnerPreflight? preflight = null,
+        IMessageDialog? messageDialog = null) =>
         new(
             deviceService,
             deviceOwnerService ?? Mock.Of<IDeviceOwnerService>(),
@@ -46,6 +47,7 @@ public class MainWindowViewModelTests
             notifications ?? new FakeNotificationService(),
             adbLocator ?? AvailableAdb(),
             confirmDialog ?? Mock.Of<IConfirmDialog>(),
+            messageDialog ?? Mock.Of<IMessageDialog>(),
             installDialog ?? Mock.Of<IPlatformToolsInstallDialog>(),
             timerFactory ?? new FakeTimerFactory());
 
@@ -242,12 +244,12 @@ public class MainWindowViewModelTests
 
     public class When_SetDeviceOwnerAsync_Is_Called : MainWindowViewModelTests
     {
-        private static async Task<MainWindowViewModel> CreateWithSelectionAsync(IDeviceOwnerService deviceOwnerService, FakeNotificationService notifications)
+        private static async Task<MainWindowViewModel> CreateWithSelectionAsync(IDeviceOwnerService deviceOwnerService, FakeNotificationService notifications, IMessageDialog? messageDialog = null)
         {
             var deviceService = new Mock<IDeviceService>();
             deviceService.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new[] { Online("serial1", "Pixel 7") });
 
-            var viewModel = Create(deviceService.Object, deviceOwnerService, notifications);
+            var viewModel = Create(deviceService.Object, deviceOwnerService, notifications, messageDialog: messageDialog);
             await viewModel.RefreshCommand.ExecuteAsync(null);
             return viewModel;
         }
@@ -268,19 +270,19 @@ public class MainWindowViewModelTests
         }
 
         [Test]
-        public async Task It_shows_an_error_notification_carrying_the_failure_message()
+        public async Task It_shows_the_failure_in_a_dialog_not_a_toast()
         {
             var deviceOwnerService = new Mock<IDeviceOwnerService>();
             deviceOwnerService.Setup(s => s.SetAsync("serial1", It.IsAny<CancellationToken>())).ReturnsAsync(DeviceOwnerResult.Failed("accounts already on device"));
 
+            var messageDialog = new Mock<IMessageDialog>();
             var notifications = new FakeNotificationService();
-            var viewModel = await CreateWithSelectionAsync(deviceOwnerService.Object, notifications);
+            var viewModel = await CreateWithSelectionAsync(deviceOwnerService.Object, notifications, messageDialog.Object);
 
             await viewModel.SetDeviceOwnerCommand.ExecuteAsync(null);
 
-            var shown = notifications.Shown.Single();
-            Assert.That(shown.Severity, Is.EqualTo(NotificationSeverity.Error));
-            Assert.That(shown.Message, Is.EqualTo("accounts already on device"));
+            messageDialog.Verify(d => d.ShowAsync("Couldn't set device owner", "accounts already on device"), Times.Once);
+            Assert.That(notifications.Shown, Is.Empty);
             Assert.That(viewModel.StatusText, Is.EqualTo("Failed to set device owner"));
         }
     }

@@ -24,6 +24,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IDeviceOwnerService _deviceOwnerService;
     private readonly IDeviceService _deviceService;
     private readonly IPlatformToolsInstallDialog _installDialog;
+    private readonly IMessageDialog _messageDialog;
     private readonly INotificationService _notifications;
     private readonly IDispatcherTimer _refreshTimer;
     private bool _isRefreshing;
@@ -40,7 +41,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusText = "Scanning for devices…";
 
-    public MainWindowViewModel(IDeviceService deviceService, IDeviceOwnerService deviceOwnerService, IDeviceOwnerPreflight deviceOwnerPreflight, INotificationService notifications, IAdbLocator adbLocator, IConfirmDialog confirmDialog, IPlatformToolsInstallDialog installDialog, ITimerFactory timerFactory)
+    public MainWindowViewModel(IDeviceService deviceService, IDeviceOwnerService deviceOwnerService, IDeviceOwnerPreflight deviceOwnerPreflight, INotificationService notifications, IAdbLocator adbLocator, IConfirmDialog confirmDialog, IMessageDialog messageDialog, IPlatformToolsInstallDialog installDialog, ITimerFactory timerFactory)
     {
         _deviceService = deviceService;
         _deviceOwnerService = deviceOwnerService;
@@ -48,6 +49,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _notifications = notifications;
         _adbLocator = adbLocator;
         _confirmDialog = confirmDialog;
+        _messageDialog = messageDialog;
         _installDialog = installDialog;
 
         _refreshTimer = timerFactory.Create(RefreshInterval);
@@ -211,13 +213,13 @@ public partial class MainWindowViewModel : ViewModelBase
             else
             {
                 StatusText = "Failed to set device owner";
-                _notifications.Show("Couldn't set device owner", result.Message ?? "adb reported a failure.", NotificationSeverity.Error, TimeSpan.Zero);
+                await _messageDialog.ShowAsync("Couldn't set device owner", result.Message ?? "adb reported a failure.");
             }
         }
         catch (ProcessLaunchException exception)
         {
             StatusText = "adb not found";
-            _notifications.Show("Couldn't set device owner", exception.Message, NotificationSeverity.Error);
+            await _messageDialog.ShowAsync("Couldn't set device owner", exception.Message);
         }
         finally
         {
