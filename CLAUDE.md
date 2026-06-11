@@ -11,19 +11,17 @@ then report success or failure. The device-owner component is **fixed** to App M
 `dpm`/shell command runner.
 
 It re-writes a much older Windows-only WinForms utility (which bundled its own `adb.exe`) as a modern .NET 10 /
-Avalonia app that finds `adb` the normal way. All functionality lives in a shared
+Avalonia app that finds `adb` the normal way (and offers to download Google's Platform Tools when it can't). It
+also runs read-only pre-flight checks before `dpm set-device-owner` and turns dpm failures into friendly,
+actionable messages. All functionality lives in a shared
 **`CCSWE.AppManager.DeviceOwner.Core`** library exposed through two front-ends: a desktop GUI
 (**`CCSWE.AppManager.DeviceOwner.Desktop`**, **Avalonia 12** + **MVVM** via CommunityToolkit.Mvvm) and a CLI
 (**`CCSWE.AppManager.DeviceOwner.Console`**). The architecture mirrors the sibling **Remote.Adb** project.
 
-## Roadmap & tasks
+## Status
 
-Planning lives in `docs/`, not here — **`docs/` tracks future work only**: completed work is evidenced in git
-history and the code itself, so it is *not* archived here.
-
-- `docs/ROADMAP.md` — possible future work. When an item lands, delete its row.
-
-The app is feature-complete for its single purpose; `docs/ROADMAP.md` lists only optional extensions.
+The app is feature-complete for its single purpose. Completed work is evidenced in git history and the code
+itself — there is no tracked roadmap.
 
 ## Git Commits
 
@@ -68,13 +66,23 @@ Projects in `src/CCSWE.AppManager.DeviceOwner.slnx`:
 - **`CCSWE.AppManager.DeviceOwner.Core`** — class library holding all domain logic and the
   `AddDeviceOwnerCore()` DI registration. No UI dependency. Feature-first folders:
   - `Common/` — process execution (`IProcessRunner`/`ProcessRunner`, run-to-completion only), `adb` location
-    (`IAdbLocator`/`AdbLocator`), `ExecutableLocator`/`IExecutableFinder`, `ProcessResult`/`ProcessLaunchException`.
-  - `Adb/` — `AdbDevice`, `AdbOutputParser` (span-based parsing of `adb devices -l`), `IDeviceService`/`DeviceService`.
-  - `DeviceOwner/` — `IDeviceOwnerService`/`DeviceOwnerService` (the one command + success/failure detection) and `DeviceOwnerResult`.
+    (`IAdbLocator`/`AdbLocator`, with `IsAvailable` for the missing-adb path), `ExecutableLocator`/`IExecutableFinder`,
+    `IEnvironment` (mockable env-var/known-folder lookups), `ProcessResult`/`ProcessLaunchException`.
+  - `Adb/` — `AdbDevice`/`AdbOwner`, `AdbOutputParser` (span-based parsing of `adb devices -l`, `dpm list-owners`,
+    `pm list users`, `dumpsys account`), `IDeviceService`/`DeviceService`.
+  - `DeviceOwner/` — `IDeviceOwnerService`/`DeviceOwnerService` (the one command, with a timeout, mapping failures
+    to friendly copy), `IDeviceOwnerPreflight`/`DeviceOwnerPreflight` (read-only readiness checks before running),
+    `DeviceOwnerError`/`DeviceOwnerMessages` (failure-string → user copy, mirrored from the ccswe.com guidance),
+    `DeviceOwnerResult`/`DeviceOwnerReadiness`/`PreflightBlocker`.
+  - `PlatformTools/` — `IPlatformToolsInstaller`/`PlatformToolsInstaller` (downloads & extracts Google's SDK
+    Platform Tools when `adb` is missing, via `IHttpClientFactory`), `DownloadProgress`/`DownloadError`.
   - `Settings/` — persisted settings (`adb` path override, theme/density) under the app-data folder.
 - **`CCSWE.AppManager.DeviceOwner.Desktop`** — the Avalonia desktop GUI (`WinExe`), a **single window** (no
   navigation). `Shell/MainWindow` composes small cards from `DeviceOwner/` (`DevicePickerCard`,
-  `SetDeviceOwnerCard`) bound to one `MainWindowViewModel`.
+  `SetDeviceOwnerCard`) bound to one `MainWindowViewModel`. `Common/` holds the modal-dialog infrastructure
+  (`DialogHost`/`IDialogViewModel`, `ConfirmDialog` for Try-anyway, `MessageDialog` for long failure text),
+  notifications, the `ITimerFactory`/`IDispatcherTimer` auto-refresh seam, and `ObservableCollectionMergeExtensions`
+  (in-place list reconcile so the selection survives a refresh); `PlatformTools/` holds the download-progress dialog.
 - **`CCSWE.AppManager.DeviceOwner.Console`** — the CLI; interactive prompts by default, with `--serial`/`--yes`
   for scripting.
 - **`*.UnitTests`** — NUnit 4 tests for Core and Desktop.
@@ -102,8 +110,9 @@ The desktop app follows Avalonia's **MVVM** conventions:
 A view model or service must **not** depend directly on an Avalonia UI control or threading primitive. Introduce
 a thin abstraction in the relevant `Common/` folder and a UI-side **adapter** that implements it. Example:
 `INotificationService` (a domain-only seam) is implemented over a `WindowNotificationManager` by
-`WindowNotificationManagerSink`; the adapter — not the consumer — owns the Avalonia type and UI-thread marshaling.
-This keeps view models unit-testable with plain NUnit + Moq (no Avalonia.Headless harness).
+`WindowNotificationManagerSink` (and, likewise, `ITimerFactory`/`IDispatcherTimer` over Avalonia's
+`DispatcherTimer`); the adapter — not the consumer — owns the Avalonia type and UI-thread marshaling. This keeps
+view models unit-testable with plain NUnit + Moq (no Avalonia.Headless harness).
 
 # Testing
 
