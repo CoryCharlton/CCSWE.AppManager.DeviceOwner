@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IEnvironment, SystemEnvironment>();
         services.AddSingleton<IDeviceOwnerPreflight, DeviceOwnerPreflight>();
         services.AddSingleton<IDeviceOwnerService, DeviceOwnerService>();
+        services.AddSingleton<IDeviceDetailsResolver, DeviceDetailsResolver>();
         services.AddSingleton<IDeviceService, DeviceService>();
         services.AddSingleton<IExecutableFinder, ExecutableFinder>();
         services.AddSingleton<IPlatformToolsInstaller, PlatformToolsInstaller>();
