@@ -30,8 +30,18 @@
                 <ComboBox.ItemTemplate>
                     <DataTemplate x:DataType="do:DeviceRowViewModel">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <PathIcon Data="{StaticResource IconDeviceMobile}" Width="18" Height="18"
-                                      VerticalAlignment="Center" Foreground="{DynamicResource OnSurfaceVariant}"/>
+                            <Panel Width="22" Height="20" VerticalAlignment="Center">
+                                <PathIcon Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Data="{Binding Form, Converter={StaticResource DeviceFormToGeometry}}"
+                                          Foreground="{DynamicResource OnSurfaceVariant}"/>
+                                <Border IsVisible="{Binding IsEmulator}" ToolTip.Tip="Emulator"
+                                        Width="13" Height="13" CornerRadius="6.5"
+                                        HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                        Background="{DynamicResource Surface}">
+                                    <PathIcon Width="9" Height="9" Data="{StaticResource IconDesktopTower}"
+                                              Foreground="{DynamicResource Primary}"/>
+                                </Border>
+                            </Panel>
                             <StackPanel Spacing="1" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding DisplayName}" Classes="BodyMedium"/>
                                 <TextBlock Text="{Binding Serial}" Classes="BodySmall"

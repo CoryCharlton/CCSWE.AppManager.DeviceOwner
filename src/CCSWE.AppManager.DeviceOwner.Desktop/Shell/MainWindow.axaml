@@ -10,7 +10,7 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/ccswe-logo.ico"
         Title="App Manager — Device Owner"
-        Width="560" Height="480"
+        Width="560" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         FontFamily="{DynamicResource BodyFontFamily}"
         Background="{DynamicResource Surface}">
