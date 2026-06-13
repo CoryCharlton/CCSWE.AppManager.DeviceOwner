@@ -14,9 +14,20 @@ if (args.Contains("-h") || args.Contains("--help"))
 
 var requestedSerial = OptionValue(args, "--serial") ?? OptionValue(args, "-s");
 var assumeYes = args.Contains("-y") || args.Contains("--yes");
+var verbose = args.Contains("-v") || args.Contains("--verbose");
 
 var services = new ServiceCollection();
-services.AddLogging(builder => builder.AddSimpleConsole(options => options.SingleLine = true).SetMinimumLevel(LogLevel.Warning));
+services.AddLogging(builder =>
+{
+    if (verbose)
+    {
+        builder.AddSimpleConsole(options => options.SingleLine = true).SetMinimumLevel(LogLevel.Information);
+    }
+    else
+    {
+        builder.SetMinimumLevel(LogLevel.None);
+    }
+});
 services.AddDeviceOwnerCore();
 
 using var provider = services.BuildServiceProvider();
@@ -195,6 +206,7 @@ static void PrintUsage()
     Console.WriteLine("  (no arguments)        Pick a device interactively, confirm, and set the device owner");
     Console.WriteLine("  --serial <serial>     Target this serial instead of prompting (alias: -s)");
     Console.WriteLine("  --yes                 Skip the confirmation prompt (alias: -y)");
+    Console.WriteLine("  --verbose             Show diagnostic logging (alias: -v)");
     Console.WriteLine("  --help                Show this help (alias: -h)");
 }
 
