@@ -13,7 +13,7 @@ whether it took.
 
 App Manager needs to be the device owner to do its job, and `dpm set-device-owner` only works over `adb` from a
 computer. This is the tool that runs that one command. It replaces a much older Windows-only WinForms utility
-that bundled its own `adb.exe`; this re-write is .NET 10 / Avalonia, cross-platform, and finds `adb` the normal
+that bundled its own `adb.exe`; this re-write is .NET / Avalonia, cross-platform, and finds `adb` the normal
 way instead of shipping a copy.
 
 ## What it does
@@ -88,8 +88,8 @@ dotnet run --project src/CCSWE.AppManager.DeviceOwner.Console -- --serial <seria
 
 ### Tech stack
 
-- **.NET 10** / C# (`net10.0`), SDK pinned to `10.0.0` via `global.json` (`rollForward: latestMinor`)
-- **[Avalonia 12](https://avaloniaui.net/)** for the cross-platform desktop UI
+- **.NET** / C# — target framework in `src/Directory.Build.props`, SDK pinned via `global.json`
+- **[Avalonia](https://avaloniaui.net/)** for the cross-platform desktop UI
 - **MVVM** via [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) (`[ObservableProperty]`, `[RelayCommand]`)
 - **[.NET Generic Host](https://learn.microsoft.com/dotnet/core/extensions/generic-host)** — the desktop head boots through **CCSWE.Avalonia.Hosting**; **CCSWE.Avalonia.Material** supplies the Material 3 theme
 - **[Microsoft.Extensions.DependencyInjection](https://learn.microsoft.com/dotnet/core/extensions/dependency-injection)** wiring the shared Core services into both front-ends
@@ -105,7 +105,7 @@ The solution is `src/CCSWE.AppManager.DeviceOwner.slnx`:
   settings). No UI dependency.
 - **`CCSWE.AppManager.DeviceOwner.Desktop`** — the Avalonia desktop GUI (`WinExe`), a single window.
 - **`CCSWE.AppManager.DeviceOwner.Console`** — the command-line front-end.
-- **`*.UnitTests`** — NUnit 4 tests (plain NUnit + Moq; UI types sit behind seams, so no Avalonia.Headless).
+- **`*.UnitTests`** — NUnit tests (plain NUnit + Moq; UI types sit behind seams, so no Avalonia.Headless).
 
 ```bash
 dotnet test src/CCSWE.AppManager.DeviceOwner.slnx
@@ -129,7 +129,7 @@ the major.minor; the patch comes from git height. To cut a release, let NBGV der
 ```bash
 dotnet tool restore
 dotnet tool run nbgv tag      # creates v<major>.<minor>.<patch> for HEAD
-git push origin <tag>          # e.g. git push origin v0.1.0
+git push origin <tag>
 ```
 
 Pushing the `v*` tag triggers `.github/workflows/release.yml`, which publishes one framework-dependent archive

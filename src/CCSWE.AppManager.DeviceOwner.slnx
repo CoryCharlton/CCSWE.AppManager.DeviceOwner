@@ -1,9 +1,8 @@
 <Solution>
   <Folder Name="/docs/">
     <File Path="../CLAUDE.md" />
-    <File Path="../LICENSE.md" />
+    <File Path="../LICENSE" />
     <File Path="../README.md" />
-    <File Path="../docs/ROADMAP.md" />
   </Folder>
   <Folder Name="/eng/">
     <File Path="../.config/dotnet-tools.json" />
