@@ -1,20 +1,36 @@
 version: 2
 updates:
-  # NuGet — versions are centrally managed in src/Directory.Packages.props (CPM).
-  - package-ecosystem: "nuget"
-    directory: "/src"
+  - package-ecosystem: nuget
+    directories:
+      - /src
+      - /.config
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
+      interval: weekly
+      day: wednesday
+      time: "06:00"
+      timezone: America/Boise
+    cooldown:
+      default-days: 3
+      exclude:
+        - "CCSWE.*"
     groups:
-      # Avalonia packages are kept in lockstep — update them together in one PR.
-      avalonia:
-        patterns:
-          - "Avalonia*"
+      nuget-minor-patch:
+        update-types: [minor, patch]
+      nuget-major:
+        update-types: [major]
 
-  # GitHub Actions used by the workflows.
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directories:
+      - /
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+      interval: weekly
+      day: wednesday
+      time: "06:00"
+      timezone: America/Boise
+    cooldown:
+      default-days: 3
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
+      actions-major:
+        update-types: [major]
