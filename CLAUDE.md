@@ -10,12 +10,12 @@ device. It does exactly one thing: list the online `adb` devices, let you pick o
 then report success or failure. The device-owner component is **fixed** to App Manager's — this is not a general
 `dpm`/shell command runner.
 
-It re-writes a much older Windows-only WinForms utility (which bundled its own `adb.exe`) as a modern .NET 10 /
+It re-writes a much older Windows-only WinForms utility (which bundled its own `adb.exe`) as a modern .NET /
 Avalonia app that finds `adb` the normal way (and offers to download Google's Platform Tools when it can't). It
 also runs read-only pre-flight checks before `dpm set-device-owner` and turns dpm failures into friendly,
 actionable messages. All functionality lives in a shared
 **`CCSWE.AppManager.DeviceOwner.Core`** library exposed through two front-ends: a desktop GUI
-(**`CCSWE.AppManager.DeviceOwner.Desktop`**, **Avalonia 12** + **MVVM** via CommunityToolkit.Mvvm) and a CLI
+(**`CCSWE.AppManager.DeviceOwner.Desktop`**, **Avalonia** + **MVVM** via CommunityToolkit.Mvvm) and a CLI
 (**`CCSWE.AppManager.DeviceOwner.Console`**). The architecture mirrors the sibling **Remote.Adb** project.
 
 ## Status
@@ -48,7 +48,7 @@ dotnet test src/CCSWE.AppManager.DeviceOwner.slnx
 dotnet test src/CCSWE.AppManager.DeviceOwner.slnx --filter "FullyQualifiedName~ClassName"
 ```
 
-The SDK is pinned to `10.0.0` (`rollForward: latestMinor`) via `global.json`. `src/Directory.Build.props`
+The SDK is pinned via the repo-root `global.json`. `src/Directory.Build.props`
 applies `LangVersion=default`, `ImplicitUsings=enable`, and `Nullable=enable` solution-wide, and references
 JetBrains.Annotations and Nerdbank.GitVersioning (version derived from git history).
 
@@ -85,7 +85,7 @@ Projects in `src/CCSWE.AppManager.DeviceOwner.slnx`:
   (in-place list reconcile so the selection survives a refresh); `PlatformTools/` holds the download-progress dialog.
 - **`CCSWE.AppManager.DeviceOwner.Console`** — the CLI; interactive prompts by default, with `--serial`/`--yes`
   for scripting.
-- **`*.UnitTests`** — NUnit 4 tests for Core and Desktop.
+- **`*.UnitTests`** — NUnit tests for Core and Desktop.
 
 Both front-ends compose a `Microsoft.Extensions.DependencyInjection` provider and call `AddDeviceOwnerCore()`
 (the Desktop head adds `AddDeviceOwnerDesktop()` on top). Keep logic in Core; the GUI and CLI are thin shells.
@@ -116,7 +116,7 @@ view models unit-testable with plain NUnit + Moq (no Avalonia.Headless harness).
 
 # Testing
 
-Tests use **NUnit 4**.
+Tests use **NUnit**.
 
 ## Class organization
 
@@ -155,7 +155,7 @@ Follow standard C# conventions.
 
 - One type per file, file named `{TypeName}.cs`. File-scoped namespaces aligned with folder structure.
 - `using` directives outside the namespace, `System` first, then third-party, then project namespaces.
-- A per-project `Usings.cs` holds global usings (test projects: global `using NUnit.Framework;`).
+- Global usings go in a `Usings.cs` (test projects: global `using NUnit.Framework;`).
 
 ## Access modifiers & language style
 
